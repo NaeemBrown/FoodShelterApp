@@ -1,0 +1,562 @@
+﻿@model FoodShelterAppC_.Models.ViewModels.DashboardViewModel
+@using System.Security.Claims
+@using System.Globalization
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = null;
+    var zaFormat = new CultureInfo("en-ZA");
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Shelter Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/dashboard.css">
+    <link rel="stylesheet" href="~/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body class="dashboard-body">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <button id="sidebarToggle" class="sidebar-toggle">
+            <span class="toggle-icon">☰</span>
+        </button>
+        <div class="sidebar-header">
+            <h2>Food Shelter</h2>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a asp-controller="Home" asp-action="Index" class="nav-link"><span class="nav-icon">🏠</span>Home</a></li>
+            <li><a asp-controller="Dashboard" asp-action="Index" class="nav-link active"><span class="nav-icon">📊</span>Dashboard</a></li>
+            <li><a href="#food-stock" class="nav-link"><span class="nav-icon">📦</span>Food Stock</a></li>
+            <li><a href="#shelter-locations" class="nav-link"><span class="nav-icon">🏘️</span>Shelter Locations</a></li>
+            <li><a href="#notes" class="nav-link"><span class="nav-icon">📝</span>Notes</a></li>
+            <li><a href="#volunteers" class="nav-link"><span class="nav-icon">🤝</span>Volunteers</a></li>
+            <li><a href="#budget" class="nav-link"><span class="nav-icon">💰</span>Budget</a></li>
+            <li><a href="#donations" class="nav-link"><span class="nav-icon">❤️</span>Donations</a></li>
+            <li><a asp-controller="MealPrep" asp-action="Index" class="nav-link"><span class="nav-icon">🍳</span>Meal Prep</a></li>
+        </ul>
+    </nav>
+
+    <main class="dashboard-content">
+        <header class="dashboard-top-bar">
+            <h1>Welcome, @User.Identity.Name!</h1>
+            <div class="user-actions">
+                <a asp-controller="Profile" asp-action="Update" class="dashboard-btn dashboard-btn-edit">
+                    <i class="fas fa-user-edit"></i> Update Profile
+                </a>
+                <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="dashboard-btn dashboard-btn-delete">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <!-- Alerts -->
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> @TempData["Success"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+            </div>
+        }
+
+        <div class="dashboard-summary">
+            <div class="summary-card static">
+                <div class="summary-icon">📦</div>
+                <div class="summary-info">
+                    <h3>Total Food Items</h3>
+                    <p class="summary-number">@Model.FoodStocks.Count</p>
+                </div>
+            </div>
+            <a asp-controller="Inventory" asp-action="LowStock" class="summary-card-link">
+                <div class="summary-card clickable">
+                    <div class="summary-icon">⚠️</div>
+                    <div class="summary-info">
+                        <h3>Low Stock Items</h3>
+                        <p class="summary-number">@Model.LowStockCount</p>
+                        <span class="click-hint">Click to view details →</span>
+                    </div>
+                </div>
+            </a>
+            <div class="summary-card static">
+                <div class="summary-icon">🤝</div>
+                <div class="summary-info">
+                    <h3>Active Volunteers</h3>
+                    <p class="summary-number">@Model.Volunteers.Count</p>
+                </div>
+            </div>
+            <div class="summary-card static">
+                <div class="summary-icon">💰</div>
+                <div class="summary-info">
+                    <h3>Total Donations</h3>
+                    <p class="summary-number">R @Model.TotalDonations.ToString("N2", zaFormat)</p>
+                </div>
+            </div>
+        </div>
+
+        <section id="food-stock" class="dashboard-section">
+            <div class="section-header">
+                <h2><span class="nav-icon">📦</span>Food Stock</h2>
+                <button class="toggle-btn">▼</button>
+            </div>
+            <div class="section-content">
+                <div class="table-container">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Unit</th>
+                                <th>Expiration Date</th>
+                                <th>Minimum Stock</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.FoodStocks)
+                            {
+                                <tr data-item-id="@item.Id">
+                                    <td data-field="ItemName">@item.ItemName</td>
+                                    <td data-field="Category">@item.Category</td>
+                                    <td data-field="Quantity">@item.Quantity.ToString("0.00")</td>
+                                    <td data-field="Unit">@item.Unit</td>
+                                    <td data-field="ExpirationDate">@(item.ExpirationDate?.ToString("yyyy-MM-dd") ?? "N/A")</td>
+                                    <td data-field="MinimumStock">@item.MinimumStock</td>
+                                    <td class="action-buttons">
+                                        <button type="button" class="dashboard-btn dashboard-btn-edit" onclick="editFoodStock(@item.Id)">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <form asp-controller="FoodStock" asp-action="Delete" asp-route-id="@item.Id" method="post" class="inline-form">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="dashboard-btn dashboard-btn-delete">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <button id="addFoodStockBtn" class="dashboard-btn dashboard-btn-add">
+                    <i class="fas fa-plus"></i> Add Food Stock
+                </button>
+            </div>
+        </section>
+
+        <!-- Modals -->
+        <div id="foodStockModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Add Food Stock Item</h2>
+                <form id="foodStockForm" onsubmit="handleFoodStockSubmit(event)">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="UserId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+                    <div class="form-group">
+                        <label for="ItemName">Item Name:</label>
+                        <input type="text" id="ItemName" name="ItemName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Category">Category:</label>
+                        <input type="text" id="Category" name="Category" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Quantity">Quantity:</label>
+                        <input type="number" id="Quantity" name="Quantity" class="form-control" required min="0" step="0.01" value="0.00"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="Unit">Unit:</label>
+                        <input type="text" id="Unit" name="Unit" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="MinimumStock">Minimum Stock:</label>
+                        <input type="number" id="MinimumStock" name="MinimumStock" class="form-control" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="ExpirationDate">Expiration Date:</label>
+                        <input type="date" id="ExpirationDate" name="ExpirationDate" class="form-control">
+                    </div>
+                    <button type="submit" class="dashboard-btn dashboard-btn-add">Add Item</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Shelter Locations Section -->
+        <section id="shelter-locations" class="dashboard-section">
+            <div class="section-header">
+                <h2><span class="nav-icon">🏘️</span>Shelter Locations</h2>
+                <button class="toggle-btn">▼</button>
+            </div>
+            <div class="section-content">
+                <ul class="item-list">
+                    @foreach (var location in Model.ShelterLocations)
+                    {
+                        <li>
+                            <span>@location.Address - @location.Date.ToString("yyyy-MM-dd")</span>
+                            <div class="action-buttons">
+                                <form asp-controller="ShelterLocation" asp-action="Delete" asp-route-id="@location.Id" method="post" class="inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dashboard-btn dashboard-btn-delete">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                </ul>
+                <button id="addShelterLocationBtn" class="dashboard-btn dashboard-btn-add">
+                    <i class="fas fa-plus"></i> Add Location
+                </button>
+            </div>
+        </section>
+
+        <!-- Notes Section -->
+        <section id="notes" class="dashboard-section">
+            <div class="section-header">
+                <h2><span class="nav-icon">📝</span>Notes</h2>
+                <button class="toggle-btn">▼</button>
+            </div>
+            <div class="section-content">
+                <ul class="item-list">
+                    @foreach (var note in Model.Notes)
+                    {
+                        <li>
+                            <span>@note.Content - @note.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                            <div class="action-buttons">
+                                <form asp-controller="Note" asp-action="Delete" asp-route-id="@note.Id" method="post" class="inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dashboard-btn dashboard-btn-delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                </ul>
+                <button id="addNoteBtn" class="dashboard-btn dashboard-btn-add">
+                    <i class="fas fa-plus"></i> Add Note
+                </button>
+            </div>
+        </section>
+
+        <!-- Volunteers Section -->
+        <section id="volunteers" class="dashboard-section">
+            <div class="section-header">
+                <h2><span class="nav-icon">🤝</span>Volunteers</h2>
+                <button class="toggle-btn">▼</button>
+            </div>
+            <div class="section-content">
+                <div class="volunteer-list">
+                    @foreach (var volunteer in Model.Volunteers)
+                    {
+                        <div class="volunteer-card">
+                            <div class="volunteer-header">
+                                <h3>@volunteer.Name</h3>
+                                <form asp-controller="Volunteer" asp-action="Delete" asp-route-id="@volunteer.Id" method="post" class="inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dashboard-btn dashboard-btn-delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="volunteer-details">
+                                <p><strong>Email:</strong> @volunteer.Email</p>
+                                @if (!string.IsNullOrEmpty(volunteer.Phone))
+                                {
+                                    <p><strong>Phone:</strong> @volunteer.Phone</p>
+                                }
+                                @if (!string.IsNullOrEmpty(volunteer.Availability))
+                                {
+                                    <p><strong>Availability:</strong> @volunteer.Availability</p>
+                                }
+                                @if (!string.IsNullOrEmpty(volunteer.Skills))
+                                {
+                                    <p><strong>Skills:</strong> @volunteer.Skills</p>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                <button id="addVolunteerBtn" class="dashboard-btn dashboard-btn-add">
+                    <i class="fas fa-plus"></i> Add Volunteer
+                </button>
+            </div>
+        </section>
+
+        <!-- Budget Section -->
+        <section id="budget" class="dashboard-section">
+            <div class="section-header">
+                <h2><span class="nav-icon">💰</span>Budget</h2>
+                <button class="toggle-btn">▼</button>
+            </div>
+            <div class="section-content">
+                <ul class="item-list">
+                    @foreach (var entry in Model.BudgetEntries)
+                    {
+                        <li>
+                            <span>R @entry.Amount.ToString("N2", zaFormat) - @entry.Description (@entry.Date.ToString("yyyy-MM-dd"))</span>
+                            <div class="action-buttons">
+                                <form asp-controller="Budget" asp-action="Delete" asp-route-id="@entry.Id" method="post" class="inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dashboard-btn dashboard-btn-delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                </ul>
+                <button id="addBudgetEntryBtn" class="dashboard-btn dashboard-btn-add">
+                    <i class="fas fa-plus"></i> Add Budget Entry
+                </button>
+            </div>
+        </section>
+
+        <!-- Donations Section -->
+        <section id="donations" class="dashboard-section">
+            <div class="section-header">
+                <h2><span class="nav-icon">❤️</span>Donations</h2>
+                <button class="toggle-btn">▼</button>
+            </div>
+            <div class="section-content">
+                <ul class="item-list">
+                    @foreach (var donation in Model.Donations)
+                    {
+                        <li>
+                            <span>R @donation.Amount.ToString("N2", zaFormat) - @(string.IsNullOrEmpty(donation.DonorName) ? "Anonymous" : donation.DonorName) (@donation.Date.ToString("yyyy-MM-dd"))</span>
+                            <div class="action-buttons">
+                                <form asp-controller="Donation" asp-action="Delete" asp-route-id="@donation.Id" method="post" class="inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dashboard-btn dashboard-btn-delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                </ul>
+                <button id="addDonationBtn" class="dashboard-btn dashboard-btn-add">
+                    <i class="fas fa-plus"></i> Add Donation
+                </button>
+            </div>
+        </section>
+
+        <!-- Add the corresponding modals -->
+        <div id="shelterLocationModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Add Shelter Location</h2>
+                <form id="shelterLocationForm" asp-controller="Dashboard" asp-action="AddShelterLocation" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="UserId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+                    <div class="form-group">
+                        <label for="Address">Address:</label>
+                        <input type="text" id="Address" name="Address" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Date">Date:</label>
+                        <input type="date" id="Date" name="Date" required>
+                    </div>
+                    <button type="submit" class="dashboard-btn dashboard-btn-add">Add Location</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="noteModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Add Note</h2>
+                <form id="noteForm" asp-controller="Dashboard" asp-action="AddNote" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="UserId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+                    <div class="form-group">
+                        <label for="Content">Content:</label>
+                        <textarea id="Content" name="Content" required></textarea>
+                    </div>
+                    <button type="submit" class="dashboard-btn dashboard-btn-add">Add Note</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="volunteerModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Add Volunteer</h2>
+                <form id="volunteerForm" asp-controller="Dashboard" asp-action="AddVolunteer" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="UserId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+                    <div class="form-group">
+                        <label for="Name">Name:</label>
+                        <input type="text" id="Name" name="Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Email">Email:</label>
+                        <input type="email" id="Email" name="Email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Phone">Phone:</label>
+                        <input type="tel" id="Phone" name="Phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="Skills">Skills:</label>
+                        <input type="text" id="Skills" name="Skills">
+                    </div>
+                    <button type="submit" class="dashboard-btn dashboard-btn-add">Add Volunteer</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="budgetModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Add Budget Entry</h2>
+                <form id="budgetForm" asp-controller="Dashboard" asp-action="AddBudget" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="UserId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+                    <div class="form-group">
+                        <label for="Amount">Amount (R):</label>
+                        <input type="number" id="Amount" name="Amount" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Description">Description:</label>
+                        <input type="text" id="Description" name="Description" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Date">Date:</label>
+                        <input type="date" id="Date" name="Date" required>
+                    </div>
+                    <button type="submit" class="dashboard-btn dashboard-btn-add">Add Entry</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="donationModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Add Donation</h2>
+                <form id="donationForm" asp-controller="Dashboard" asp-action="AddDonation" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="UserId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+                    <div class="form-group">
+                        <label for="Amount">Amount (R):</label>
+                        <input type="number" id="Amount" name="Amount" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="DonorName">Donor Name:</label>
+                        <input type="text" id="DonorName" name="DonorName">
+                    </div>
+                    <div class="form-group">
+                        <label for="Date">Date:</label>
+                        <input type="date" id="Date" name="Date" required>
+                    </div>
+                    <button type="submit" class="dashboard-btn dashboard-btn-add">Add Donation</button>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="~/js/dashboard.js"></script>
+    <script src="~/js/inventory.js"></script>
+    <script src="~/js/sections.js"></script>
+    <script src="~/js/sidebar.js"></script>
+
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Section toggle functionality
+    const sectionHeaders = document.querySelectorAll('.section-header');
+    const sections = document.querySelectorAll('.section-content');
+
+    // Initially hide all section contents
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+
+    sectionHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const section = this.closest('.dashboard-section');
+            const content = section.querySelector('.section-content');
+            const toggleBtn = this.querySelector('.toggle-btn');
+            
+            // Toggle the content visibility
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggleBtn.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                toggleBtn.textContent = '▶';
+            }
+        });
+    });
+
+    // Modal functionality
+    const modalButtons = {
+        'addFoodStockBtn': 'foodStockModal',
+        'addShelterLocationBtn': 'shelterLocationModal',
+        'addNoteBtn': 'noteModal',
+        'addVolunteerBtn': 'volunteerModal',
+        'addBudgetEntryBtn': 'budgetModal',
+        'addDonationBtn': 'donationModal'
+    };
+
+    // Setup modal triggers
+    Object.entries(modalButtons).forEach(([btnId, modalId]) => {
+        const btn = document.getElementById(btnId);
+        const modal = document.getElementById(modalId);
+        if (btn && modal) {
+            btn.onclick = function() {
+                modal.style.display = "block";
+            }
+        }
+    });
+
+    // Close modal functionality
+    const closeButtons = document.querySelectorAll('.close');
+    closeButtons.forEach(button => {
+        button.onclick = function() {
+            this.closest('.modal').style.display = "none";
+        }
+    });
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = "none";
+        }
+    }
+
+    // Handle section navigation from sidebar
+    document.querySelectorAll('.sidebar-menu a[href^="#"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const sectionId = this.getAttribute('href').substring(1);
+            const section = document.getElementById(sectionId);
+            if (section) {
+                const content = section.querySelector('.section-content');
+                const toggleBtn = section.querySelector('.toggle-btn');
+                
+                // Show the section content
+                content.style.display = 'block';
+                toggleBtn.textContent = '▼';
+                
+                // Scroll to the section
+                section.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+});
+</script>
+</body>
+</html>

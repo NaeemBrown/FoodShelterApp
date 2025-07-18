@@ -1,0 +1,21 @@
+﻿<!-- Views/Inventory/ExpiringSoon.cshtml -->
+@model IEnumerable<FoodStock>
+@{
+    ViewData["Title"] = "Expiring Soon";
+}
+<div class="container">
+    <h2>Items Expiring Soon</h2>
+    <div class="inventory-list">
+        @foreach (var item in Model)
+        {
+            <div class="inventory-item @(item.ExpirationDate <= DateTime.Now.AddDays(7) ? "expiring-soon" : "")">
+                <h3>@item.ItemName</h3>
+                <p>Quantity: @item.Quantity @item.Unit</p>
+                <p>Category: @item.Category</p>
+                <p>Expires: @item.ExpirationDate?.ToShortDateString()</p>
+                <p>Days until expiration: @((item.ExpirationDate?.Subtract(DateTime.Now))?.Days)</p>
+            </div>
+        }
+    </div>
+    <a asp-controller="Dashboard" asp-action="Index" class="btn btn-secondary">Back to Dashboard</a>
+</div>

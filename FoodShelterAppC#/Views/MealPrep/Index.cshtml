@@ -1,0 +1,145 @@
+﻿<!-- Views/MealPrep/Index.cshtml -->
+@model IEnumerable<MealPlan>
+@{
+    ViewData["Title"] = "Meal Prep";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Shelter Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/dashboard.css">
+    <link rel="stylesheet" href="~/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body class="dashboard-body">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <button id="sidebarToggle" class="sidebar-toggle">
+            <span class="toggle-icon">☰</span>
+        </button>
+        <div class="sidebar-header">
+            <h2>Food Shelter</h2>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a asp-controller="Home" asp-action="Index" class="nav-link"><span class="nav-icon">🏠</span>Home</a></li>
+            <li><a asp-controller="Dashboard" asp-action="Index" class="nav-link"><span class="nav-icon">📊</span>Dashboard</a></li>
+            <li><a asp-controller="MealPrep" asp-action="Index" class="nav-link active"><span class="nav-icon">🍲</span>Meal Prep</a></li>
+            <li><a asp-controller="Auth" asp-action="Logout" class="nav-link"><span class="nav-icon">🚪</span>Logout</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="content-header">
+                <h1><i class="fas fa-utensils"></i> Meal Preparation</h1>
+                <button class="dashboard-btn dashboard-btn-add" onclick="openAddMealModal()">
+                    <i class="fas fa-plus"></i> Add Meal Plan
+                </button>
+            </div>
+
+            <div class="meal-plans-grid">
+                @foreach (var meal in Model)
+                {
+                    <div class="dashboard-card meal-plan-card" data-meal-id="@meal.Id">
+                        <div class="card-header">
+                            <h3>@meal.Name</h3>
+                            <span class="meal-status @(meal.IsPrepared ? "status-prepared" : "status-pending")">
+                                @(meal.IsPrepared ? "Prepared" : "Not Prepared")
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <p class="servings"><i class="fas fa-users"></i> @meal.Servings servings</p>
+                            <div class="ingredients-list">
+                                <h4><i class="fas fa-list"></i> Ingredients:</h4>
+                                <ul>
+                                    @foreach (var ingredient in meal.Ingredients)
+                                    {
+                                        <li>
+                                            <span class="ingredient-name">@ingredient.FoodStock.ItemName</span>
+                                            <span class="ingredient-amount">
+                                                @ingredient.QuantityPerServing @ingredient.FoodStock.Unit per serving
+                                            </span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            @if (!meal.IsPrepared)
+                            {
+                                <button class="dashboard-btn dashboard-btn-success" onclick="prepareMeal(@meal.Id)">
+                                    <i class="fas fa-check"></i> Prepare Meal
+                                </button>
+                            }
+                            <button class="dashboard-btn dashboard-btn-delete" onclick="deleteMeal(@meal.Id)">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Meal Modal -->
+    <div id="addMealModal" class="modal">
+        <div class="modal-content dashboard-card">
+            <div class="modal-header">
+                <h2><i class="fas fa-plus"></i> Add Meal Plan</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="addMealForm" class="dashboard-form">
+                @Html.AntiForgeryToken()
+                <div class="form-group">
+                    <label for="mealName">Meal Name:</label>
+                    <input type="text" id="mealName" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="servings">Number of Servings:</label>
+                    <input type="number" id="servings" name="servings" class="form-control" min="1" required>
+                </div>
+                <div id="ingredientsList">
+                    <!-- Ingredients will be added here -->
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="addIngredientField()" class="dashboard-btn">
+                        <i class="fas fa-plus"></i> Add Ingredient
+                    </button>
+                    <button type="submit" class="dashboard-btn dashboard-btn-add">
+                        <i class="fas fa-save"></i> Create Meal Plan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <template id="ingredientTemplate">
+        <div class="form-group ingredient-row">
+            <select class="form-control" required>
+                <option value="">Select Ingredient</option>
+                @foreach (var item in ViewBag.FoodStock)
+                {
+                    <option value="@item.Id">
+                        @item.ItemName (@item.Quantity @item.Unit available)
+                    </option>
+                }
+            </select>
+            <input type="number" class="form-control" step="0.1" min="0.1" 
+                   placeholder="Quantity per serving" required>
+            <button type="button" class="dashboard-btn dashboard-btn-delete remove-ingredient" 
+                    onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </template>
+
+    <script src="~/js/sidebar.js"></script>
+    <script src="~/js/meal-prep.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+﻿<!-- Views/Auth/Login.cshtml -->
+@{
+    ViewData["Title"] = "Login";
+}
+
+<main class="container">
+    <section class="login-section">
+        <h2>Login</h2>
+        @if (TempData["Message"] != null)
+        {
+            <div class="alert alert-success">
+                @TempData["Message"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">
+                @TempData["Error"]
+            </div>
+        }
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger">
+                <ul>
+                    @foreach (var modelState in ViewData.ModelState.Values)
+                    {
+                        foreach (var error in modelState.Errors)
+                        {
+                            <li>@error.ErrorMessage</li>
+                        }
+                    }
+                </ul>
+            </div>
+        }
+        <form method="POST" asp-controller="Auth" asp-action="Login" class="login-form">
+            @Html.AntiForgeryToken()
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-login">Login</button>
+        </form>
+        <p>Don't have an account? <a asp-controller="Auth" asp-action="Register">Register here</a></p>
+        <p>Forgot your password? <a asp-controller="Auth" asp-action="ForgotPassword">Reset it here</a></p>
+    </section>
+</main>

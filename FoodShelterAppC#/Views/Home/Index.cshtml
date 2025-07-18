@@ -1,0 +1,125 @@
+﻿<!-- Views/Home/Index.cshtml -->
+@model IEnumerable<ShelterLocation>
+@{
+    ViewData["Title"] = "Home";
+}
+
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        #map { 
+            height: 400px; 
+            width: 100%; 
+            margin: 20px 0; 
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+
+<main>
+    <div class="container">
+        <section class="hero">
+            <h2>Welcome to Food Shelter App</h2>
+            <p>A comprehensive solution for managing food shelter resources and helping those in need.</p>
+        </section>
+
+        <section class="shelter-directory">
+            <h2>Active Food Shelters</h2>
+            <div class="shelter-grid">
+                @foreach (var shelter in ViewBag.Users)
+                {
+                    <div class="shelter-card">
+                        <div class="shelter-header">
+                            <h3>@shelter.Name</h3>
+                            <div class="shelter-stats">
+                                <span><i class="fas fa-map-marker-alt"></i> @shelter.ShelterLocations.Count Location(s)</span>
+                                <span><i class="fas fa-users"></i> @shelter.Volunteers.Count Volunteer(s)</span>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(shelter.Bio))
+                        {
+                            <p class="shelter-bio">@shelter.Bio</p>
+                        }
+                        <div class="shelter-links">
+                            @if (!string.IsNullOrEmpty(shelter.Website))
+                            {
+                                <a href="@shelter.Website" target="_blank" class="shelter-link">
+                                    <i class="fas fa-globe"></i> Website
+                                </a>
+                            }
+                            @if (!string.IsNullOrEmpty(shelter.Contact))
+                            {
+                                <div class="shelter-contact">
+                                    <i class="fas fa-phone"></i> @shelter.Contact
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(shelter.DonationLink))
+                            {
+                                <a href="@shelter.DonationLink" target="_blank" class="donate-btn">
+                                    <i class="fas fa-heart"></i> Donate
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section class="map-section">
+            <h2>Food Shelter Locations</h2>
+            <div id="map"></div>
+        </section>
+
+        <section class="features">
+            <div class="feature">
+                <div class="feature-icon">🍲</div>
+                <h3>Food Inventory</h3>
+                <p>Keep track of food inventory and manage donations effectively.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🏘️</div>
+                <h3>Shelter Locations</h3>
+                <p>Manage and share information about available shelter locations.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🤝</div>
+                <h3>Volunteer Management</h3>
+                <p>Coordinate volunteers and their activities efficiently.</p>
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2>Ready to make a difference?</h2>
+            <p>If you are a Registered Food shelter or a small collective working to help those in need then join our community and start managing your food shelter resources today.</p>
+            <a asp-controller="Auth" asp-action="Register" class="btn btn-cta">Sign Up Now</a>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+        var map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        var locations = @Html.Raw(ViewBag.MapLocations);
+        var markers = [];
+        
+        locations.forEach(function(shelter) {
+            if (shelter.latitude && shelter.longitude) {
+                var marker = L.marker([shelter.latitude, shelter.longitude])
+                    .addTo(map)
+                    .bindPopup(shelter.address);
+                markers.push(marker);
+            }
+        });
+
+        if (markers.length > 0) {
+            var group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds());
+        }
+    </script>
+}
